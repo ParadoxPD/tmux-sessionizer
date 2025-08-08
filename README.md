@@ -79,13 +79,19 @@ List all tmux sessions using `fzf` and kill the selected session.
 
 ---
 
-### 🔹 `t [-t template]`
+### 🔹 `t [options]`
 
 Search for a directory using `fzf` (within defined `search_dirs`), then:
 
 - `cd` into that directory
 - Create a session named after the folder
 - Use the specified or default template to spawn windows + run commands
+
+**Options:**
+
+- `-n`, `--num-windows`: Override number of windows
+- `-c`, `--command`: Command to run in a window (repeatable)
+- `-t`, `--template`: Use a specific template
 
 ```sh
 t
@@ -196,4 +202,3 @@ If you like this tool, go check out his streams, dotfiles, and content — it's 
 ## 🧑‍💻 Author
 
 Built with ❤️ by Paradox — designed for developers who live in the terminal.
-
