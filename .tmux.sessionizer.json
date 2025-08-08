@@ -1,0 +1,18 @@
+{
+  "defaults": {
+    "windows": 3,
+    "commands": ["nvim ."],
+    "search_dirs": [
+      "~/Documents",
+      "~/Desktop",
+      "~/Documents/Projects",
+      "~/",
+      "~/.dev/config"
+    ]
+  },
+
+  "dotfiles": {
+    "windows": 3,
+    "search_dirs": ["~/.dev", "~/.config", "~/.local"]
+  }
+}
