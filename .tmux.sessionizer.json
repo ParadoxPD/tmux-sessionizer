@@ -1,7 +1,10 @@
 {
   "defaults": {
     "windows": 3,
-    "commands": ["nvim ."],
+    "commands": {
+      "1": ["nvim ."],
+      "3": ["echo \"running....\"", "git status", "echo working"]
+    },
     "search_dirs": [
       "~/Documents",
       "~/Desktop",

@@ -92,17 +92,29 @@ function tn() {
     fi
 
     # Get commands
-    local -a commands=()
+    declare -A commands_map
+
     if [ ${#cmd_override[@]} -gt 0 ]; then
-        commands=("${cmd_override[@]}")
+        for i in {1..${#cmd_override[@]}}; do
+            commands_map["$i"]="${cmd_override[$i]}"
+        done
     else
-        while read -r cmd; do
-            commands+=("$cmd")
+        while IFS=$'\t' read -r win_num cmd; do
+            # Append to array in case multiple commands per window
+            commands_map["$win_num"]+="$cmd;"
         done < <(jq -r --arg key "$config_key" '
-            if .[$key].commands then .[$key].commands[]
-            else .defaults.commands[] end
+            if .[$key].commands then
+                .[$key].commands
+            else
+                .defaults.commands
+            end
+            | to_entries[]
+            | .key as $win
+            | .value[]
+            | "\($win)\t\(.)"
         ' <<<"$config")
     fi
+
 
 
     # Create session if not exists
@@ -112,10 +124,17 @@ function tn() {
             tmux new-window -t "$session"
         done
 
-        # Send commands to windows
-        for ((i = 1; i <= ${#commands[@]}; i++)); do
-            tmux send-keys -t "$session:$i" "${commands[$i]}" C-m
+        # Now send commands to specific windows
+        for win_num_string in ${(on)${(k)commands_map}}; do
+            local win_num=$((win_num_string + 0))
+            local -a commands=()
+            commands=("${(s/;/)commands_map[$win_num_string]}")  # split on ';' but keep spaces
+            for ((i = 1; i <= ${#commands[@]}; i++)); do
+                local cmd=${commands[$i]}
+                [[ -n "$cmd" ]] && tmux send-keys -t "$session:$win_num" "$cmd" C-m
+            done
         done
+
     fi
 
     if [ -n "$TMUX" ]; then
@@ -123,6 +142,19 @@ function tn() {
     else
         tmux attach-session -t "$session:1"
     fi
+}
+
+function tmux_list_templates(){
+    local local_config_file="$(pwd)/.tmux.sessionizer.json"
+    if [[ -f "$local_config_file" ]]; then
+        config=$(<"$local_config_file")
+    fi
+    tmpfile=$(mktemp)
+    printf '%s\n' "$config" > "$tmpfile"
+    jq -r 'keys[]' "$tmpfile" | \
+        fzf --height=50 --border --reverse --ansi \
+        --preview "jq .{} $tmpfile"
+    trap 'rm -f "$tmpfile"' EXIT
 }
 
 function tl() {
@@ -263,24 +295,34 @@ function thelp() {
     print -P "  ${CYAN}Global config:${RESET} {XDG_CONFIG_HOME OR HOME/.config}/tmux/.tmux.sessionizer.json"
     print -P "  ${CYAN}Local (per-project):${RESET} {pwd}/.tmux.sessionizer.json (takes priority if present)"
 
-    print -P ""
     print -P "${GREEN}📄 Example Config File:${RESET}"
     print -P "${CYAN}{"
     print -P "  \"defaults\": {"
     print -P "    \"windows\": 3,"
-    print -P "    \"commands\": [\"nvim\", \"htop\", \"git status\"],"
+    print -P "    \"commands\": {"
+    print -P "      \"1\": [\"nvim .\"],"
+    print -P "      \"2\": [\"htop\"],"
+    print -P "      \"3\": [\"git status\"]"
+    print -P "    },"
     print -P "    \"search_dirs\": [\"~/Documents\", \"~/Desktop\"]"
     print -P "  },"
     print -P "  \"rust\": {"
     print -P "    \"windows\": 2,"
-    print -P "    \"commands\": [\"nvim src/main.rs\", \"cargo watch -x run\"],"
+    print -P "    \"commands\": {"
+    print -P "      \"1\": [\"nvim src/main.rs\"],"
+    print -P "      \"2\": [\"cargo watch -x run\"]"
+    print -P "    },"
     print -P "    \"search_dirs\": [\"~/Projects/rust\"]"
     print -P "  },"
     print -P "  \"js\": {"
     print -P "    \"windows\": 2,"
-    print -P "    \"commands\": [\"nvim\", \"npm start\"]"
+    print -P "    \"commands\": {"
+    print -P "      \"1\": [\"nvim\"],"
+    print -P "      \"2\": [\"npm start\"]"
+    print -P "    }"
     print -P "  }"
     print -P "}${RESET}"
+
 
     print -P ""
     print -P "${GREEN}🛠  Dependencies:${RESET} ${CYAN}tmux, fzf, jq, fd, eza${RESET}"

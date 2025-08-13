@@ -130,17 +130,36 @@ Place a `.tmux.sessionizer.json` in any project root to override the global one.
 {
   "defaults": {
     "windows": 3,
-    "commands": ["nvim", "htop", "git status"],
-    "search_dirs": ["~/Documents", "~/Desktop"]
+    "commands": {
+      "1": ["nvim ."],
+      "3": ["echo \"running....\"", "git status", "echo working"]
+    },
+    "search_dirs": [
+      "~/Documents",
+      "~/Desktop",
+      "~/Documents/Projects",
+      "~/",
+      "~/.dev/config"
+    ]
+  },
+  "dotfiles": {
+    "windows": 3,
+    "search_dirs": ["~/.dev", "~/.config", "~/.local"]
   },
   "rust": {
     "windows": 2,
-    "commands": ["nvim src/main.rs", "cargo watch -x run"],
+    "commands": {
+      "1": ["nvim src/main.rs"],
+      "2": ["cargo watch -x run"]
+    },
     "search_dirs": ["~/Projects/rust"]
   },
   "js": {
     "windows": 2,
-    "commands": ["nvim", "npm start"]
+    "commands": {
+      "1": ["nvim"],
+      "2": ["npm start"]
+    }
   }
 }
 ```
