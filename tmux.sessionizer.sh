@@ -9,7 +9,7 @@ config=""
 if [[ -f "$config_file" ]]; then
     config=$(<"$config_file")
 else
-    config='{"defaults": {"windows": 3, "commands": [], "search_dirs" : ["~/Documents", "~/Desktop" ,"~/"] } }'
+    config='{"defaults": {"windows": 3, "commands": {}, "search_dirs" : ["~/Documents", "~/Desktop" ,"~/"] } }'
 fi
 
 function sanity_check() {
@@ -222,7 +222,7 @@ function t() {
 
     local out_dir
     out_dir="$(fd . "${fd_args[@]}" --type=d --hidden --exclude .git --max-depth 3 \
-        | sort | uniq \
+        | sort -u \
         | fzf --preview 'eza --tree --level=4 --color=always {} | head -200')"
     
     if [ ! -z "$out_dir" ]; then
