@@ -1,7 +1,7 @@
 #!/usr/bin/env zsh
 
 #Aliases and functions for tmux
-alias tmux="tmux -f $TMUX_CONF_FILE"
+alias tmux="tmux -f \"$TMUX_CONF_FILE\""
 alias ts='tn sesh'
 
 config_file="${TMUX_CONF_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}}/.tmux.sessionizer.json"
@@ -32,10 +32,9 @@ function sanity_check() {
 function ta() {
     sanity_check
     if [ "$#" -eq 1 ]; then
-        tmux attach-session -t $1
+        tmux attach-session -t "$1"
     elif [ "$#" -eq 0 ]; then
         tmux attach-session
-    else
     fi
 }
 
@@ -72,7 +71,8 @@ function tn() {
         return 1
     fi
 
-    local local_config_file="$(pwd)/.tmux.sessionizer.json"
+    local local_config_file
+    local_config_file="$(pwd)/.tmux.sessionizer.json"
     if [[ -f "$local_config_file" ]]; then
         config=$(<"$local_config_file")
     fi
