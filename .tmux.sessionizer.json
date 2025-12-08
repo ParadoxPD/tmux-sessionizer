@@ -10,12 +10,26 @@
       "~/Desktop",
       "~/Documents/Projects",
       "~/",
-      "~/.dev/config"
+      "~/.dev/config",
+      "~/Documents/mtech"
     ]
   },
 
   "dotfiles": {
     "windows": 3,
     "search_dirs": ["~/.dev", "~/.config", "~/.local"]
+  },
+  "jupyter": {
+    "commands": {
+      "1": ["jupyter notebook"]
+    }
+  },
+  "flutter": {
+    "windows": 5,
+    "commands": {
+      "1": ["nvim ."],
+      "2": [""],
+      "3": ["flutter emulators --launch pixel_brokeaf"]
+    }
   }
 }

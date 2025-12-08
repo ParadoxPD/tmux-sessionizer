@@ -40,7 +40,7 @@ function ta() {
 
 function tn() {
     sanity_check
-    local session=""
+    local session="$1"
     local win_override=""
     local template=""
     declare -a cmd_override=()
@@ -60,7 +60,6 @@ function tn() {
             shift 2
             ;;
         *)
-            session="$1"
             shift
             ;;
         esac
@@ -180,13 +179,18 @@ function tk() {
 }
 
 function t() {
+    local use_pwd_flag=0
     local template=""
     local all_args=("$@")
     while [[ "$#" -gt 0 ]]; do
         case "$1" in
         -t|--template)
             template="$2"
-            break
+            shift 2
+            ;;
+        --pwd)
+            use_pwd_flag=1
+            shift
             ;;
         *)
             shift
@@ -195,36 +199,40 @@ function t() {
     done
 
     local config_key="${template:-defaults}"
-    local search_dirs=()
-    local search_dirs=($(jq -r --arg key "$config_key" '
-      if .[$key].search_dirs then .[$key].search_dirs[]
-      else .defaults.search_dirs[] end
-    ' <<<"$config"))
+    local out_dir
+    
+    if [[ $use_pwd_flag -eq 0 ]];then
+        local search_dirs=($(jq -r --arg key "$config_key" '
+          if .[$key].search_dirs then .[$key].search_dirs[]
+          else .defaults.search_dirs[] end
+        ' <<<"$config"))
 
-    # Fallback if empty
-    if [[ ${#search_dirs[@]} -eq 0 ]]; then
-        echo "Add search_dirs to the config"
-        search_dirs=(~/Documents ~/Desktop ~/)
+        # Fallback if empty
+        if [[ ${#search_dirs[@]} -eq 0 ]]; then
+            echo "Add search_dirs to the config"
+            search_dirs=(~/Documents ~/Desktop ~/)
+        fi
+
+
+        # Expand ~ manually
+        for ((i = 1; i <= ${#search_dirs[@]}; i++)); do
+            search_dirs[$i]="${search_dirs[$i]/\~/$HOME}"
+        done
+
+
+        # Build fd arguments
+        local fd_args=()
+        for dir in "${search_dirs[@]}"; do
+            fd_args+=("$dir")
+        done
+
+        out_dir="$(fd . "${fd_args[@]}" --type=d --hidden --exclude .git --max-depth 3 \
+            | sort -u \
+            | fzf --preview 'eza --tree --level=4 --color=always {} | head -200')"
+    else
+        out_dir=$(pwd)
     fi
 
-
-    # Expand ~ manually
-    for ((i = 1; i <= ${#search_dirs[@]}; i++)); do
-        search_dirs[$i]="${search_dirs[$i]/\~/$HOME}"
-    done
-
-
-    # Build fd arguments
-    local fd_args=()
-    for dir in "${search_dirs[@]}"; do
-        fd_args+=("$dir")
-    done
-
-    local out_dir
-    out_dir="$(fd . "${fd_args[@]}" --type=d --hidden --exclude .git --max-depth 3 \
-        | sort -u \
-        | fzf --preview 'eza --tree --level=4 --color=always {} | head -200')"
-    
     if [ ! -z "$out_dir" ]; then
         local curr_dir=$(pwd)
         cd $out_dir
