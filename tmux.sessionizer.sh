@@ -5,12 +5,13 @@ alias tmux="tmux -f \"$TMUX_CONF_FILE\""
 alias ts='tn sesh'
 
 config_file="${TMUX_CONF_DIR:-${XDG_CONFIG_HOME:-$HOME/.config}}/.tmux.sessionizer.json"
-config=""
+GLOBAL_CONFIG=""
 if [[ -f "$config_file" ]]; then
-    config=$(<"$config_file")
+    GLOBAL_CONFIG=$(<"$config_file")
 else
-    config='{"defaults": {"windows": 3, "commands": {}, "search_dirs" : ["~/Documents", "~/Desktop" ,"~/"] } }'
+    GLOBAL_CONFIG='{"defaults":{"windows":3,"commands":{},"search_dirs":["~/Documents","~/Desktop","~/"]}}'
 fi
+
 
 function sanity_check() {
     if ! command -v tmux &>/dev/null; then
@@ -40,6 +41,9 @@ function ta() {
 
 function tn() {
     sanity_check
+    local config
+    config="$(load_config)"
+
     local session="$1"
     local win_override=""
     local template=""
@@ -94,7 +98,7 @@ function tn() {
     declare -A commands_map
 
     if [ ${#cmd_override[@]} -gt 0 ]; then
-        for i in {1..${#cmd_override[@]}}; do
+        for ((i = 1; i <= ${#cmd_override[@]}; i++)); do
             commands_map["$i"]="${cmd_override[$i]}"
         done
     else
@@ -144,16 +148,19 @@ function tn() {
 }
 
 function tmux_list_templates(){
+    local config
+    config="$(load_config)"
+
     local local_config_file="$(pwd)/.tmux.sessionizer.json"
     if [[ -f "$local_config_file" ]]; then
         config=$(<"$local_config_file")
     fi
     tmpfile=$(mktemp)
+    trap 'rm -f "$tmpfile"' EXIT
     printf '%s\n' "$config" > "$tmpfile"
     jq -r 'keys[]' "$tmpfile" | \
         fzf --height=50 --border --reverse --ansi \
         --preview "jq .{} $tmpfile"
-    trap 'rm -f "$tmpfile"' EXIT
 }
 
 function tl() {
@@ -179,6 +186,9 @@ function tk() {
 }
 
 function t() {
+    local config
+    config="$(load_config)"
+
     local use_pwd_flag=0
     local template=""
     local all_args=("$@")
@@ -202,10 +212,10 @@ function t() {
     local out_dir
     
     if [[ $use_pwd_flag -eq 0 ]];then
-        local search_dirs=($(jq -r --arg key "$config_key" '
-          if .[$key].search_dirs then .[$key].search_dirs[]
-          else .defaults.search_dirs[] end
+       local search_dirs=($(jq -r --arg key "$config_key" '
+          (.[$key].search_dirs // .defaults.search_dirs // [])[]
         ' <<<"$config"))
+
 
         # Fallback if empty
         if [[ ${#search_dirs[@]} -eq 0 ]]; then
@@ -235,8 +245,8 @@ function t() {
 
     if [ ! -z "$out_dir" ]; then
         local curr_dir=$(pwd)
-        cd $out_dir
-        local tmux_session_name=$(basename $out_dir)
+        cd "$out_dir"
+        local tmux_session_name=$(basename "$out_dir")
         tmux_session_name="${tmux_session_name//./_}"
         tn $tmux_session_name "${all_args[@]}"
         cd "$curr_dir"
@@ -339,3 +349,12 @@ function thelp() {
     print -P ""
 }
 
+
+function load_config() {
+    local local_config_file="$(pwd)/.tmux.sessionizer.json"
+    if [[ -f "$local_config_file" ]]; then
+        cat "$local_config_file"
+    else
+        echo "$GLOBAL_CONFIG"
+    fi
+}
