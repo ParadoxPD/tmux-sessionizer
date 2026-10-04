@@ -243,13 +243,24 @@ function t() {
         out_dir=$(pwd)
     fi
 
-    if [ ! -z "$out_dir" ]; then
-        local curr_dir=$(pwd)
-        cd "$out_dir"
-        local tmux_session_name=$(basename "$out_dir")
-        tmux_session_name="${tmux_session_name//./_}"
-        tn $tmux_session_name "${all_args[@]}"
-        cd "$curr_dir"
+    if [[ -n "$out_dir" ]]; then
+        local curr_dir="$PWD"
+
+        # Use the shell's built-in cd, bypassing zoxide
+        builtin cd -P -- "$out_dir" || return 1
+        local abs_path="$PWD"
+
+        # Hash the absolute path, not the session name
+        local path_hash
+        path_hash=$(printf '%s' "$abs_path" | sha256sum | cut -c1-8)
+
+        local tmux_session_name
+        tmux_session_name="$(basename "$abs_path")"
+        tmux_session_name="${tmux_session_name//./_}-${path_hash}"
+
+        tn "$tmux_session_name" "${all_args[@]}"
+
+        builtin cd "$curr_dir"
     else
         echo "you fucked up"
     fi
